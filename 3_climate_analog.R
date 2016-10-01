@@ -7,6 +7,7 @@
 
 # load necessary packages
 library(raster)
+library(rgdal)
 library(biomod2)
 
 # set root directory 
@@ -19,6 +20,10 @@ locDir<-paste0(rootDir, "data/ROD_locations/")
 envDir<-paste0(rootDir, "data/environmental/")
 # path to processed and saved output files
 outDir<-paste0("data/data_to_use/")
+
+# set coordinate system to be used with data as needed
+LatLon<-'+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0'
+utmSys<-'+proj=utm +zone=4 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0'
 
 # load Hawaii Island coasts shapefile
 hi_coast<-readOGR(paste0(envDir, "hawaii_coast"), "bi_coast")
@@ -174,6 +179,18 @@ rod_sre<-function(rod_type, strain_data){
   writeRaster(sre_map, paste0(outDir, rod_type, "_current_CE.tif"), 
               format = "GTiff", overwrite = TRUE)
   
+  # save mapped output as jpeg for viewing 
+  jpeg(paste0(outDir, rod_type, "_current_CE.jpg"), 
+       width = 10, height = 10, units = "in",
+       pointsize = 12, quality = 90, bg = "white", res = 300)
+  # plot rod analog climates
+  plot(sre_map, legend = FALSE, main = paste0(rod_type, " surface range envelope"),
+       xlab = "Longitude", ylab = "Latitude")
+  legend("topright", legend = "ROD Climatic Range",
+         pch = 15, col = "darkgreen")    
+  # save image file
+  dev.off()
+  
   # final function output
   return(sre_map)
 }
@@ -189,13 +206,19 @@ a_sre<-rod_sre("a_strain", a_bc_data)
 b_sre<-rod_sre("b_strain", b_bc_data)
 y_sre<-rod_sre("y_strain", y_bc_data)
 
-# extract raster values from sres
-all_sre_pts<-as.data.frame(as(all_sre, "SpatialPixelsDataFrame"))
-a_sre_pts<-as.data.frame(as(a_sre, "SpatialPixelsDataFrame"))
-b_sre_pts<-as.data.frame(as(b_sre, "SpatialPixelsDataFrame"))
-y_sre_pts<-as.data.frame(as(y_sre, "SpatialPixelsDataFrame"))
+# create mask of sre points
+sre_mask<-all_sre
+sre_mask[sre_mask == 0]<-1
+# create archipelago-wide mask for background plotting
+island_mask<-as.data.frame(as(sre_mask, "SpatialPixelsDataFrame"))
+# save archpelago-wide extracted ohia distribution
+write.csv(island_mask, paste0(outDir, "all_islands_mask.csv"))
 
-#----- OHIA DISTRIBUTION -----#
+# stack all sre rasters
+sre_stack<-stack(all_sre, a_sre, b_sre, y_sre)
+names(sre_stack)<-c("all_strain", "a_strain", "b_strain", "y_strain")
+
+#----- MERGE WITH OHIA DISTRIBUTION -----#
 
 # load raster of ohia distribution
 ohia_map<-raster(paste0(envDir, "HIGAP_500m_ohia.tif"))
@@ -204,33 +227,80 @@ all_ohia_pts<-as.data.frame(as(ohia_map, "SpatialPixelsDataFrame"))
 # save archpelago-wide extracted ohia distribution
 write.csv(all_ohia_pts, paste0(outDir, "all_islands_ohia.csv"))
 
-#----- ROAD PROXIMITY -----#
+# mosaic sre raster stack with ohia distribution
+sre_ohia<-mosaic(sre_stack, ohia_map, fun = sum)
+# 2 = rod & ohia, 1 = rod | ohia, 0 = NA
+sre_ohia
 
-# load road data 
-road_map<-raster(paste0(envDir, "all_HI_roads_distance_wgs84_resampled_aligned.tif"))
-# extract all values for the entire archipelago
-all_road_pts<-as.data.frame(as(road_map, "SpatialPixelsDataFrame"))
-# save archpelago-wide extracted road proximity
-write.csv(all_road_pts, paste0(outDir, "all_islands_roads.csv"))
+# rename stack layers
+names(sre_ohia)<-c("all_strain", "a_strain", "b_strain", "y_strain")
 
-ggplot(all_road_pts) + 
-  geom_raster(aes(x = x, y = y, fill = all_HI_roads_distance_wgs84_resampled_aligned))
+# extract raster values from sres
+sre_ohia_pts<-as.data.frame(as(sre_ohia, "SpatialPixelsDataFrame"))
+# save extracted sre points for ggplots in shiny app
+write.csv(sre_ohia_pts, paste0(outDir, "all_islands_rod_current_CE.csv"))
 
-road_map
-plot(crop(road_map, hi_coast))
+#----- DOFAW POLYGONS -----#
+
+# load DOFAW survey shapefile layer of potential rod areas
+dofaw_survey<-readOGR(paste0(envDir, "DOFAW"), "potential_rod_areas")
+head(dofaw_survey)
+
+# convert to lat/lon projection
+dofaw_shp<-spTransform(dofaw_survey, CRS(LatLon))
+
+# create an identifiying reference column for spatial data
+dofaw_shp@data$id<-rownames(dofaw_shp@data)
+# create data frame from spatial object
+dofaw_pts<-fortify(dofaw_shp, region = "id")
+# merge fortified object with spatial data for geologic variables
+all_dofaw<-merge(dofaw_pts, dofaw_shp@data, by = "id")
+head(all_dofaw)
+
+# plot polygons
+# ggplot(all_dofaw, aes(x = long, y = lat, group = group)) + 
+#   geom_polygon(fill = NA) + geom_path(color = "white") + coord_fixed()
+
+# create table of rank for potential of rod
+dofaw_table<-data.frame(table(all_dofaw$NAME, useNA = "ifany"))
+# add numbers to match rank order from lightest to very severe 
+dofaw_table$Count<-c(5:7,4, 8, 11, 8, 12, 10, 13:15, 1:3, 16:17)
+# match ranked numbers to table
+all_dofaw$name<-dofaw_table$Count[match(all_dofaw$NAME, dofaw_table$Var1)]
+# replace 17 category with NAs
+all_dofaw$name[all_dofaw$name == 17]<-NA
+
+# save final DOFAW output file of survey data
+write.csv(all_dofaw, paste0(outDir, "all_islands_dofaw_survey.csv"))
+
+####################################
+##### END OF CLIMATE ENVELOPES #####
+####################################
+
+# plot polygons with colorw ranking severity of rod potential
+# ggplot(all_dofaw, aes(x = long, y = lat, group = group, color = name)) + 
+  # geom_polygon(fill = NA) + geom_path() +
+  # scale_color_gradient(low = "yellow", high = "red", breaks = c(1, 6, 11, 16),
+  #                     labels = c("Light < 10%", "Moderate 10-30%", 
+  #                                "Severe 30-50%", "Very Severe > 50%"), 
+  #                     na.value = "black") +
+  # coord_fixed() + theme_gray()
 
 #----- TEST PLOTS -----#
 
-plot(all_sre, legend = F)
-plot(ohia_map, legend = F, add = T)
-plot(all_coast, add = T)
-
-
-ggplot(all_sre_pts) +
-  geom_raster(data = subset(all_sre_pts, all_sre_pts$layer == 1),
-              aes(x = x, y = y, fill = "rod")) + 
-  geom_raster(data = subset(all_ohia_pts, all_ohia_pts$HIGAP_500m_ohia == 1), 
-              aes(x = x, y = y, fill = "ohia")) + 
-
-
-
+# ROD POTENTIAL MAP - ADD TO SHINY APP AS NEW TAB
+# ggplot(sre_ohia_pts) + 
+#   geom_tile(data = island_mask, aes(x = x, y = y, fill = layer), colour = "gray") +
+#   geom_tile(data = all_ohia_pts, aes(x = x, y = y, fill = HIGAP_500m_ohia), colour = "darkgreen") +
+#   geom_raster(data = subset(sre_ohia_pts, sre_ohia_pts$a_strain == 2), 
+#               aes(x = x, y = y, fill = a_strain)) + 
+#   scale_fill_continuous(breaks = 2, 
+#                         guide = guide_legend(title = "Suitable Climatic\nRange for ROD", 
+#                                              title.position = "right", label = F)) +
+#   geom_path(data = all_dofaw, aes(x = long, y = lat, group = group, color = name)) +
+#   scale_color_gradient(low = "yellow", high = "red", breaks = c(1, 6, 11, 16),
+#                        labels = c("Light < 10%", "Moderate 10-30%", 
+#                                   "Severe 30-50%", "Very Severe > 50%"), 
+#                        na.value = "black") +
+#   labs(x = "Longitude", y = "Latitude", colour = "ROD Potential") +
+#   ggtitle("Potential ROD Sites") + coord_fixed() + theme_gray()

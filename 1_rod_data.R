@@ -9,6 +9,9 @@
 rootDir<-"Y:/PICCC_analysis/ROD_distribution/"
 setwd(rootDir)
 
+# load necessary packages
+library(rgdal)
+
 # path to location data
 locDir<-paste0(rootDir, "data/ROD_locations/")
 # path to environmental data
@@ -23,6 +26,12 @@ utmSys<-'+proj=utm +zone=4 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=
 ################################
 ##### RAW IN SITU ROD FILE #####
 ################################
+
+#----- NOTE (as of 09/30/2016) -----#
+# change the 'rod_file' object to match name of new rod data file
+# make sure rod dates in data are manually converted from excel date format
+# this data and app builds on an original file with the following format:
+# Latitude,N,16,6 | Longitude,N,16,6 | Positive | Date_Sampl,N,16,6
 
 # store file name of in situ rod data to be update
 rod_file<-"original_raw_rod"
@@ -52,7 +61,7 @@ ab$POS_NEG[ab$POS_NEG == "AC & B"]<-"B"
 only_rod$POS_NEG[only_rod$POS_NEG == "AC & B"]<-"A"
 # add separated Type B values
 only_rod<-rbind(only_rod, ab)
-# 89 observations total as of 09/20/2016
+# 89 observations total as of 09/20/2016 - 24 A, 15 B, and 50 Yes
 
 # convert Lat/Lon to utm for data extraction
 utm_coords<-project(as.matrix(only_rod[ , c("LON", "LAT")]), utmSys)

@@ -258,9 +258,23 @@ rod_master$AGE_GROUP<-age_table$AGE_GROUP[match(rod_geol$AGE_GROUP, age_table$ag
 rod_master$name<-name_table$name[match(rod_geol$NAME, name_table$NAME)]
 rod_master$NAME<-rod_geol$NAME
 
+#----- ROAD PROXIMITY -----#
+
+# load road data 
+road_map<-raster(paste0(envDir, "all_HI_roads_distance_wgs84_resampled_aligned.tif"))
+# distances from roads archipelago-wide by Lat/Lon
+
+# extract distance values from Hawaii Island at rod points
+rod_roads<-extract(road_map, cbind(rod$LON, rod$LAT))
+# add extracted road distances to master rod data set
+rod_master$roads<-rod_roads*103.597  # convert degree to distance (old value = 110.70428 km)
+
 #----- SAVE MASTER FILES -----#
 
 # save master files with extracted data for shiny app
 write.csv(ohia_vars, paste0(outDir, "ohia_dist_vars.csv"))  # ohia master file 
 write.csv(rod_master, paste0(outDir, "rod_dist_vars.csv"))  # rod master file
+
+######################################
 ##### END OF VARIABLE EXTRACTION #####
+######################################
