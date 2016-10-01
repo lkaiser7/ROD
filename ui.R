@@ -34,6 +34,22 @@ shinyUI<-navbarPage(inverse = TRUE,
                                            ),
                                            mainPanel(plotOutput("RODmap")))
                                 ),
+                                
+                                # plots of rod climate envelopes
+                                tabPanel("Threat of ROD",
+                                         sidebarLayout(
+                                           sidebarPanel(
+                                             radioButtons("sres", "Select Ceratocystis fimbriata strain:",
+                                                          choices = c("All Strains" = "all_strain",
+                                                                      "A" = "a_strain",
+                                                                      "B" = "b_strain",
+                                                                      "BOTH" = "y_strain")),
+                                             radioButtons("dofaw", "Add DOFAW Aerial Surveys To Map?",
+                                                          choices = c("NO", "YES")) 
+                                           ),
+                                           mainPanel(plotOutput("sre_plots")))
+                                ),
+                                
                                 # plots of rod bioclimatic variables
                                 tabPanel("Climatic Associations",
                                          sidebarLayout(
@@ -52,6 +68,7 @@ shinyUI<-navbarPage(inverse = TRUE,
                                            ),
                                            mainPanel(plotOutput("bc_plots")))
                                 ),
+                                
                                 # plots of other climate factors
                                 tabPanel("Vegetation Characteristics",
                                          sidebarLayout(
@@ -68,6 +85,7 @@ shinyUI<-navbarPage(inverse = TRUE,
                                            ),
                                            mainPanel(plotOutput("bv_plots")))
                                 ),
+                                
                                 tabPanel("Geologic Classifications",
                                          sidebarLayout(
                                            sidebarPanel(
@@ -81,6 +99,7 @@ shinyUI<-navbarPage(inverse = TRUE,
                                            ),
                                            mainPanel(plotOutput("geol_plots")))
                                 )
+                                
                     ) # end tabsetPanel
                     #), tabPanel("Road Maps")
                     # end shiny UI with navbarPage
