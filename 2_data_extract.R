@@ -264,10 +264,29 @@ rod_master$NAME<-rod_geol$NAME
 road_map<-raster(paste0(envDir, "all_HI_roads_distance_wgs84_resampled_aligned.tif"))
 # distances from roads archipelago-wide by Lat/Lon
 
+# crop to Hawaii Island only
+hi_roads<-crop(road_map, hi_coast)
+# reduce resolution size of raster by aggregating pixels
+hi_roads<-aggregate(hi_roads, fact = 2, fun = modal)
+# extract all values for Hawaii Island
+hi_roads_spdf<-as.data.frame(as(hi_roads*103.597, "SpatialPixelsDataFrame"))
+names(hi_roads_spdf)[1]<-"km_road_dist"
+# save island-wide extracted ohia distribution
+write.csv(hi_roads_spdf, paste0(outDir, "all_hi_roads.csv"))
+
+# ggplot(hi_roads_spdf) + 
+#   geom_raster(aes(x = x, y = y, fill = km_road_dist)) +
+#   scale_fill_gradientn(name = "Distance to Road (km)", colours = rev(cm.colors(10)))
+
+# extract geological variables from Hawaii across ohia distribution
+ohia_roads<-extract(road_map*103.597, cbind(ohia_vars$x, ohia_vars$y))
+# add desired geology columns to master rod data set
+ohia_vars$ROADS<-ohia_roads
+
 # extract distance values from Hawaii Island at rod points
 rod_roads<-extract(road_map, cbind(rod$LON, rod$LAT))
 # add extracted road distances to master rod data set
-rod_master$roads<-rod_roads*103.597  # convert degree to distance (old value = 110.70428 km)
+rod_master$ROADS<-rod_roads*103.597  # convert degree to distance (old value = 110.70428 km)
 
 #----- SAVE MASTER FILES -----#
 

@@ -13,7 +13,7 @@ library(gridExtra)
 
 # set working directory to app location
 appDir<-"Y:/PICCC_analysis/ROD_distribution/rod_app/"
-setwd(appDir)
+# setwd(appDir)
 
 #####################
 ##### LOAD DATA #####
@@ -26,10 +26,11 @@ rod<-read.csv("rod_dist_vars.csv", header = TRUE)
 hi_ohia<-read.csv("ohia_dist_vars.csv", header = TRUE)
 
 # load data for all hawaii island for ggplot base maps
-hi_bc<-read.csv("all_HI_2000_bioclims.csv")  # bioclims
-hi_veg<-read.csv("all_HI_veg.csv")           # higap classes/biomes
-hi_bioreg<-read.csv("all_HI_bioreg.csv")     # bioregions
-hi_geol<-read.csv("all_HI_geol.csv")         # geology 
+hi_bc<-read.csv("all_hi_2000_bioclims.csv")  # bioclims
+hi_veg<-read.csv("all_hi_veg.csv")           # higap classes/biomes
+hi_bioreg<-read.csv("all_hi_bioreg.csv")     # bioregions
+hi_geol<-read.csv("all_hi_geol.csv")         # geology 
+hi_roads<-read.csv("all_hi_roads.csv")       # roads
 
 # load data for archipelago-wide maps
 all_islands<-read.csv("all_islands_mask.csv")
@@ -46,6 +47,23 @@ BI<-get_googlemap(center = c(lon = -155.5, lat = 19.5),
 
 # run server to display UI selections 
 shinyServer<-function(input, output){ 
+  
+  # https://github.com/daattali/advanced-shiny/blob/master/loading-screen/app.R
+  # hide loading message and show app after execution
+  # hide(id = "loading-content", anim = T, animType = "fade")
+  # show("app-content")
+  
+  #----- HOME PAGE -----#
+  # output$ROD<-renderPlot({
+  #   # load raster bands of image
+  #   pic1<-raster("ctahr_rod_pics.tif", band = 1)
+  #   pic2<-raster("ctahr_rod_pics.tif", band = 2)
+  #   pic3<-raster("ctahr_rod_pics.tif", band = 3)
+  #   # create raster stack
+  #   pic_stack<-stack(pic1, pic2, pic3)
+  #   # display image 
+  #   plotRGB(pic_stack)  
+  # })
   
   #----- MAP -----# 
   
@@ -92,24 +110,16 @@ shinyServer<-function(input, output){
                                       "Severe 30-50%", "Very Severe > 50%"), 
                            na.value = "black") +
       labs(x = "Longitude", y = "Latitude", colour = "ROD Potential") +
-      ggtitle("Potential ROD Sites") + coord_fixed() + theme_gray()
-    
-    # rod proximity to roads histogram    
-    road_hist<-ggplot(data = rod) + 
-      geom_histogram(aes(x = roads, fill = POS_NEG), # position = "dodge",
-                     bins = 8, colour = "gray") + 
-      ggtitle("ROD Proximity to Roads") + labs(x = "Distance to Road (km)", y = "Count") +
-      scale_fill_discrete(name = "Strain") + theme_gray()
+      ggtitle("Potential ROD Sites within Ohia Distribution") + coord_fixed() + theme_gray()
     
     # add dofaw survey polygons if selected
     if(input$dofaw == "YES"){
-      grid.arrange(dofaw_plot, road_hist, nrow = 2, ncol = 1)
+      dofaw_plot
     } else {
-      grid.arrange(ce_plot, road_hist, nrow = 2, ncol = 1)
+      ce_plot
     } 
     
-  }, width = 800, height = 800)
-  
+  }, width = 1000, height = 1000)
   
   #----- BIOCLIMS -----# 
   
@@ -152,6 +162,10 @@ shinyServer<-function(input, output){
                      fill = rev(terrain.colors(ohia_bins())), colour = "grey") +  
       ggtitle("ROD Only Distribution") + xlim(x_range()) +
       labs(x = NULL, y = "Frequency") + theme_gray()  
+    
+    # display blank screen if no variable is selected
+    if(is.null(input$type2))
+      return(rast_plot)
     
     # arrange plots
     grid.arrange(rast_plot, arrangeGrob(ohia_plot, rod_plot), nrow = 2, ncol = 1)
@@ -315,10 +329,51 @@ shinyServer<-function(input, output){
     
   }, width = 800, height = 800)
   
+  #----- ROAD ACCESIBILITY -----#
+  
+  # create reactive dataset based on rod strain
+  road_data<-reactive({
+    rod[rod$POS_NEG %in% input$type5, ]
+  })
+  
+  output$road_plots<-renderPlot({
+    
+    # plot roads raster    
+    road_plot<-ggplot(data = hi_roads, aes(x = x, y = y), na.rm = T) +
+      geom_raster(na.rm = T, aes(fill = km_road_dist)) + 
+      scale_fill_gradientn(name = "Distance (km)", colours = rev(heat.colors(10))) +
+      geom_point(data = road_data(), 
+                 aes(x = j_LON, y = j_LAT, shape = factor(POS_NEG)), size = 3) + 
+      scale_shape_discrete(solid = F, name = "Strain") + ggtitle("ROD Distances to Roads") +
+      labs(x = "Longitude", y = "Latitude") + coord_fixed() + theme_gray()
+    # theme(panel.background = element_rect(fill = heat.colors(10)))
+    
+    # histograms of road distance data
+    ohia_plot<-ggplot(data = hi_ohia) + 
+      geom_histogram(na.rm = T, aes(x = ROADS), bins = 18,
+                     fill = rev(heat.colors(18)), colour = "grey") +  
+      ggtitle("Entire Ohia Distribution") + xlim(0, 8) +
+      labs(x = NULL, y = "Frequency") + theme_gray()   
+    
+    rod_plot<-ggplot(data = road_data()) + 
+      geom_histogram(na.rm = T, aes(x = road_data()["ROADS"]), bins = 18,
+                     fill = rev(heat.colors(18)), colour = "grey") +  
+      ggtitle("ROD Only Distribution") + xlim(0, 8) + ylim(0, 8) +
+      labs(x = NULL, y = "Frequency") + theme_gray()  
+    
+    # display blank screen if no variable is selected
+    if(is.null(input$type5))
+      return(road_plot)
+    
+    # arrange plots
+    grid.arrange(road_plot, arrangeGrob(ohia_plot, rod_plot), nrow = 2, ncol = 1)
+    
+  }, width = 800, height = 800)
+  
   
   # end shiny SERVER
 }
 
 # run shiny web application
-shinyApp(ui = shinyUI, server = shinyServer)
+# shinyApp(ui = shinyUI, server = shinyServer)
 # deployApp()

@@ -36,7 +36,7 @@ utmSys<-'+proj=utm +zone=4 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=
 # store file name of in situ rod data to be update
 rod_file<-"original_raw_rod"
 # load raw rod file to be processed
-raw_rod<-read.csv(paste0(locDir, rod_file, ".csv"), header = T)
+raw_rod<-read.csv(paste0(locDir, rod_file, ".csv"), header = T, stringsAsFactors = F)
 # rename column headers
 names(raw_rod)<-c("LAT", "LON", "POS_NEG", "DATE")
 # check the final data set for formatting - 262 observations as of 09/20/2016
@@ -61,7 +61,9 @@ ab$POS_NEG[ab$POS_NEG == "AC & B"]<-"B"
 only_rod$POS_NEG[only_rod$POS_NEG == "AC & B"]<-"A"
 # add separated Type B values
 only_rod<-rbind(only_rod, ab)
-# 89 observations total as of 09/20/2016 - 24 A, 15 B, and 50 Yes
+# change Yes values to Undefined
+only_rod$POS_NEG[only_rod$POS_NEG == "Yes"]<-"Undefined"
+# 89 observations total as of 09/20/2016 - 24 A, 15 B, and 50 Undefined
 
 # convert Lat/Lon to utm for data extraction
 utm_coords<-project(as.matrix(only_rod[ , c("LON", "LAT")]), utmSys)
