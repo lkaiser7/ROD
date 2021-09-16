@@ -1,9 +1,10 @@
+Rapid Ohia Death R Shiny Portal
 
-Real-Time ROD Analysis: http://hawaiirodresearch.org/ 
+http://hawaiirodresearch.org/ 
 
 UPDATED data extraction and analysis for shiny app
 
-### ROD ANALYSIS ###
+### DATA PROCESSING ###
 "1_rod_data-UPDATE.R"
 
 formats ROD data collected from field surveys uploaded to ArcGIS Online
