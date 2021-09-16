@@ -1,23 +1,38 @@
-# ROD
-Real-Time ROD Analysis:
-data extraction and analysis for shiny app
 
-# 1_rod_data.R
-formats ROD data collected from field surveys
+Real-Time ROD Analysis: http://hawaiirodresearch.org/ 
 
-# 2_data_extract.R
-collects variables at ROD locations
+UPDATED data extraction and analysis for shiny app
+
+### ROD ANALYSIS ###
+"1_rod_data-UPDATE.R"
+
+formats ROD data collected from field surveys uploaded to ArcGIS Online
+
+monthly data packages received from Brian Tucker (<bjtucker@hawaii.edu>)
+
+"2_HI_data_extract-UPDATE.R"
+collects variables at ROD locations for Hawaii Island
+
 (ie. bioclimatic variables, vegetation, geology, etc.)
 
-# 3_climate_analog.R
-calculates climate envelope for strains of ROD across the Hawaiian Islands
+"2_all_data_extract-UPDATE.R"
 
-# deploy_rod.R
-quick start to deploy shiny.io apps for cloud hosting
+collects variables at ROD locations for all islands
 
-# server.R
-server function to produce app responses to user inputs
+"3_this_rod-UPDATE.R"
 
-# ui.R
-user inputs selects that set up server outputs
+thins ROD collection points for prevalence points
 
+selects unique samples to avoid oversampling error
+
+"4_rod_model-UPDATE.R"
+
+ensemble modeling approach for threat levels of ROD
+
+uses BIOMOD2 package to project ROD distribution 
+
+
+### SHINY APP ###
+"ui.R" - user inputs selects that set up server outputs
+
+"server.R" - server function to produce app responses to user inputs
