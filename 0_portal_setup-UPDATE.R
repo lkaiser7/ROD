@@ -85,7 +85,7 @@ setwd(appDir)
 deployApp(account = 'rapid-ohia-death')
 
 ##### END ROD PORTAL UPDATE #####
-# app last successfully deployed 09/15/2021
+# app last successfully deployed 05/17/2022
 # https://rapid-ohia-death.shinyapps.io/rod_portal/
 # password for data sensitivity: usgsrodapp 
 # new url at: hawaiirodresearch.org

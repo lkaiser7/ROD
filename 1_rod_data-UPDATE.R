@@ -82,10 +82,21 @@ hi_ext<-extent(hi_coast)
 # # Brian Tucker <bjtucker@hawaii.edu>
 # rod_gdb<-"ROD_Database_20210503.gdb"
 
-#----- UPDATE (09/01/2021) -----#
+# #----- UPDATE (09/01/2021) -----#
+# # updated with latest arcgis ROD geodatabase
+# # Brian Tucker <bjtucker@hawaii.edu>
+# rod_gdb<-"ROD_Database_20210901.gdb"
+
+# #----- UPDATE (12/01/2021) -----#
+# # updated with latest arcgis ROD geodatabase
+# # Brian Tucker <bjtucker@hawaii.edu>
+# rod_gdb<-"ROD_Database_20211201.gdb"
+
+#----- UPDATE (04/11/2022) -----#
 # updated with latest arcgis ROD geodatabase
 # Brian Tucker <bjtucker@hawaii.edu>
-rod_gdb<-"ROD_Database_20210901.gdb"
+rod_gdb<-"ROD_Database_20220411.gdb"
+# NOTE: returns Field_Form_v7 version of database
 
 # locate arcgis geodatabase files
 gdbDir<-paste0(locDir, rod_gdb)
@@ -131,10 +142,20 @@ rod$MONTH<-format(rod$DATE, "%m")
 # add year
 rod$YEAR<-format(rod$DATE, "%Y")
 
-# select data columns to keep 
-rod_update<-subset(gdb_df, select = c(globalid, sample_id, location_area, elevation_m,
-                                      tree_diameter, tree_height, tree_symptom, disease_sign,
-                                      staining_yes_no, ceratocystis_species))
+# check column names
+if(names(gdb_df)[1] == "globalid"){
+  # select data columns to keep 
+  rod_update<-subset(gdb_df, select = c(globalid, sample_id, location_area, elevation_m,
+                                        tree_diameter, tree_height, tree_symptom, disease_sign,
+                                        staining_yes_no, ceratocystis_species))
+}else{ # for Field_Form_v7 version
+  # select data columns to keep 
+  rod_update<-subset(gdb_df, select = c(sample_id_short, sample_id, location_area, elevation_m,
+                                        tree_diameter, tree_height, tree_symptom, disease_sign,
+                                        staining_yes_no, ceratocystis_species))
+}
+# head(rod_update)
+
 # add selected columns to final dataset
 rod<-cbind(rod, rod_update)
 

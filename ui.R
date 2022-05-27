@@ -32,7 +32,7 @@ shinyUI<-navbarPage(inverse = TRUE,
                                                         radioButtons("sp", "Select Ceratocystis Species",
                                                                      choices = c("C. lukuohia", "C. huliohia")),
                                                         br(),
-                                                        em("September 2021 Update: The data and analysis shown here have inherent caveats and limitations 
+                                                        em("April 2022 Update: The data and analysis shown here have inherent caveats and limitations 
                                                         that are well described in the associated manuscript:"), 
                                                         uiOutput("fem_doi")
                                                         ),
